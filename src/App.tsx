@@ -11,85 +11,119 @@ const App = () => {
 			{ ...card, id: card.id },
 			{ ...card, id: card.id + 100 },
 		])
-		return pairs
-	}
-
-	// Shuffle cards
-	const shuffleCards = (cards: TCardList): TCardList => {
-		return cards.sort(() => Math.random() - 0.5)
+		const shuffled = [...pairs]
+		for (let i = shuffled.length - 1; i > 0; i--) {
+			const j = Math.floor(Math.random() * (i + 1))
+			;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+		}
+		return shuffled
 	}
 
 	// Game cards state
-	const [gameCards, setGameCards] = useState<TCardList>(
-		createGameCards() // shuffled cards
-	)
-	// flipped cards with an array of cards names
-	const [flippedCards, setFlippedCards] = useState<TCard["name"][]>([])
+	const [gameCards, setGameCards] = useState<TCardList>(createGameCards())
+	
+	const [flippedCards, setFlippedCards] = useState<number[]>([])
 
-	// number of moves
-	const [moves, setMoves] = useState(0)
+	const [misses, setMisses] = useState(0)
 
 	// number of matches
 	const [matches, setMatches] = useState(0)
 
 	// game state
-	const [gameOver, setGameOver] = useState(true)
+	const [gameOver, setGameOver] = useState(false)
+
+	const [isChecking, setIsChecking] = useState(false)
 
 	const handleCardClick = (clickedCard: TCard) => {
-		// Check if the card is already matched
-		if (clickedCard.matched) return
-		// Check if we have have 2 cards flipped already
+		if (gameOver || clickedCard.matched || isChecking || clickedCard.flipped) return
+		
 		if (flippedCards.length === 2) return
 
 		// Flip the card
 		setGameCards((prev) =>
 			prev.map((card) =>
-				card.id === clickedCard.id ? { ...card, flipped: !card.flipped } : card
+				card.id === clickedCard.id ? { ...card, flipped: true } : card
 			)
 		)
-		setFlippedCards((prev) => [...prev, clickedCard["name"]])
+		setFlippedCards((prev) => [...prev, clickedCard.id])
 	}
 
 	useEffect(() => {
 		if (flippedCards.length === 2) {
-			setMoves((prev) => prev + 1)
-			// Check if the flipped cards match
-			const [firstCard, secondCard] = flippedCards
-			if (firstCard === secondCard) {
-				// Increment the number of matches
-				setMatches((prev) => prev + 1)
-				setFlippedCards([]) // empty the flipped cards array
-				// set the matched cards to true
-				setGameCards((prev) =>
-					prev.map((card) =>
-						card.name === firstCard ? { ...card, matched: true } : card
-					)
-				)
-			} else {
-				// Flip the cards back
-				setTimeout(() => {
+			setIsChecking(true)
+			
+			const [firstCardId, secondCardId] = flippedCards
+			const firstCard = gameCards.find((card) => card.id === firstCardId)
+			const secondCard = gameCards.find((card) => card.id === secondCardId)
+
+			if (firstCard && secondCard) {
+				if (firstCard.name === secondCard.name) {
+					setMatches((prev) => prev + 1)
+					setFlippedCards([])
 					setGameCards((prev) =>
 						prev.map((card) =>
-							// find the cards to flip back to avoid flipping all of them
-							flippedCards.some((fc) => fc === card.name)
-								? { ...card, flipped: false }
+							card.id === firstCardId || card.id === secondCardId
+								? { ...card, matched: true }
 								: card
 						)
 					)
-					setFlippedCards([]) // empty the flipped cards array
-				}, 1000)
+					setIsChecking(false)
+				} else {
+					setMisses((prev) => prev + 1)
+					
+					// Flip the cards back after 1s
+					setTimeout(() => {
+						setGameCards((prev) =>
+							prev.map((card) =>
+								card.id === firstCardId || card.id === secondCardId
+									? { ...card, flipped: false }
+									: card
+							)
+						)
+						setFlippedCards([])
+						setIsChecking(false)
+					}, 1000)
+				}
 			}
 		}
-		// end of the game
-		if (matches === gameCards.length / 2) {
-			setGameOver(true)
+	}, [flippedCards, gameCards])
+
+	useEffect(() => {
+		if (matches > 0 && matches === cards.length) {
+			setTimeout(() => {
+				setGameOver(true)
+			}, 500)
 		}
-	}, [flippedCards])
+	}, [matches])
+
+	const restartGame = () => {
+		setGameCards(createGameCards())
+		setFlippedCards([])
+		setMisses(0)
+		setMatches(0)
+		setGameOver(false)
+		setIsChecking(false)
+	}
 
 	return (
 		<div className="main_section">
-			<h1>Memory Game</h1>
-			<p>Number of moves: {moves}</p>
+			<div className="game_header">
+				<h1>🎮 Memory Game</h1>
+				<p className="game_subtitle">Match all the superhero pairs!</p>
+				<div className="stats_container">
+					<div className="stat_item">
+						<span className="stat_label">Matches:</span>
+						<span className="stat_value">{matches}/{cards.length}</span>
+					</div>
+					<div className="stat_item">
+						<span className="stat_label">Misses:</span>
+						<span className="stat_value">{misses}</span>
+					</div>
+				</div>
+				<button onClick={restartGame} className="restart_btn">
+					Restart Game
+				</button>
+			</div>
 			<div className="card_container">
 				{gameCards.map((card: TCard) => {
 					return (
@@ -97,7 +131,12 @@ const App = () => {
 					)
 				})}
 			</div>
-			<ModalComp showModal={gameOver} toggleModal={setGameOver} />
+			<ModalComp 
+				showModal={gameOver} 
+				misses={misses}
+				matches={matches}
+				onRestart={restartGame}
+			/>
 		</div>
 	)
 }
