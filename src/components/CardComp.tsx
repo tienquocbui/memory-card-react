@@ -12,12 +12,19 @@ const CardComp = ({ clickProp, card }: TCardProps) => {
 	}
 
 	return (
-		<article
+		<div 
 			onClick={handleClick}
-			className={`${styles.card} ${card.flipped ? styles.animate__rotate : ""}`}
+			className={`${styles.card_wrapper} ${card.matched ? styles.matched : ""}`}
 		>
-			<img src={`./imgs/${card.image}`} alt={card.name} />
-		</article>
+			<div className={`${styles.card} ${card.flipped || card.matched ? styles.flipped : ""}`}>
+				<div className={styles.card_front}>
+					<span className={styles.card_question}>?</span>
+				</div>
+				<div className={styles.card_back}>
+					<img src={`./imgs/${card.image}`} alt={card.name} />
+				</div>
+			</div>
+		</div>
 	)
 }
 
