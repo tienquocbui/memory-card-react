@@ -108,8 +108,8 @@ const App = () => {
 	return (
 		<div className="main_section">
 			<div className="game_header">
-				<h1>🎮 Memory Game</h1>
-				<p className="game_subtitle">Match all the superhero pairs!</p>
+				<h1>Memory Game</h1>
+				<p className="game_subtitle">Match all the superhero pairs! This game is built for Martin's class hehe :)</p>
 				<div className="stats_container">
 					<div className="stat_item">
 						<span className="stat_label">Matches:</span>
